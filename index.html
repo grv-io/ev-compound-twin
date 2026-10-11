@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EV Compound Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: engineering bench. Recipe rail on the left, live property readouts on the right, full-width explorer + trial planner below. Dark-first. */
+:root{
+  --bg:#0e1113; --panel:#151a1d; --panel2:#1b2125; --line:#283036; --line2:#333c43;
+  --fg:#e7ebea; --muted:#8e999e; --faint:#5f6a70;
+  --accent:#19e6c1; --accent-soft:rgba(25,230,193,.14); --accent-ink:#04231d;
+  --warm:#f0a24a; --warm-soft:rgba(240,162,74,.14);
+  --dot:#4a545b;
+  --f-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:10px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f3f5f5; --panel:#ffffff; --panel2:#f7f9f9; --line:#dbe1e3; --line2:#c9d1d4;
+  --fg:#12181b; --muted:#56636a; --faint:#8a969b;
+  --accent:#0a947b; --accent-soft:rgba(10,148,123,.12); --accent-ink:#ffffff;
+  --warm:#b4610c; --warm-soft:rgba(180,97,12,.12); --dot:#b9c3c7; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f3f5f5; --panel:#ffffff; --panel2:#f7f9f9; --line:#dbe1e3; --line2:#c9d1d4;
+  --fg:#12181b; --muted:#56636a; --faint:#8a969b;
+  --accent:#0a947b; --accent-soft:rgba(10,148,123,.12); --accent-ink:#ffffff;
+  --warm:#b4610c; --warm-soft:rgba(180,97,12,.12); --dot:#b9c3c7; color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--f-sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:28px 40px;display:grid;gap:22px}
+@media (min-width:720px){.wrap{padding-inline:28px}}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+h1{font-size:clamp(1.5rem,3.2vw,2.1rem)}
+h2{font-size:1.08rem}
+h3{font-size:.95rem}
+p{margin:0}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font:500 .72rem/1 var(--f-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+/* header */
+header.top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.brand{display:grid;gap:8px;min-width:0}
+.brand p{color:var(--muted);max-width:62ch}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--warm);color:var(--warm);background:var(--warm-soft);border-radius:999px;padding:5px 12px;font:500 .74rem/1.2 var(--f-mono);letter-spacing:.04em}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warm)}
+.banner{border:1px solid var(--line2);border-left:3px solid var(--warm);background:var(--panel);border-radius:var(--r);padding:12px 16px;font-size:.88rem;color:var(--muted)}
+.banner b{color:var(--fg);font-weight:600}
+/* panels */
+.grid2{display:grid;gap:22px;grid-template-columns:1fr}
+@media (min-width:960px){.grid2{grid-template-columns:minmax(330px,400px) 1fr;align-items:start}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:16px;min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:500 .82rem/1 var(--f-sans);color:var(--fg);background:var(--panel2);border:1px solid var(--line2);border-radius:7px;padding:9px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.07)}
+button.ghost{background:transparent}
+button.tiny{padding:6px 9px;font-size:.76rem}
+/* sliders */
+.sliders{display:grid;gap:14px}
+.sl{display:grid;gap:4px}
+.sl-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.sl-top label{font-weight:500;font-size:.88rem}
+.sl-top .hint{display:block;font-size:.74rem;color:var(--faint);font-weight:400}
+.sl-val{font:500 .9rem var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sl-val small{color:var(--muted);font-size:.72rem;margin-left:3px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0;height:22px}
+.group-label{font:500 .7rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding-top:4px;border-top:1px dashed var(--line);padding-top:10px}
+.sanity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sanity div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.sanity span{display:block;font-size:.72rem;color:var(--muted)}
+.sanity b{font:500 .95rem var(--f-mono)}
+.warnline{color:var(--warm);font-size:.8rem}
+/* output cards */
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:14px;display:grid;gap:8px;min-width:0}
+.card-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.card h3{font-size:.86rem;font-weight:500}
+.card .sub{font-size:.72rem;color:var(--faint)}
+.chip{font:500 .7rem/1 var(--f-mono);padding:4px 7px;border-radius:5px;white-space:nowrap;border:1px solid transparent}
+.chip.good{color:var(--accent);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+.chip.bad{color:var(--warm);background:var(--warm-soft);border-color:color-mix(in srgb,var(--warm) 35%,transparent)}
+.chip.flat{color:var(--muted);background:transparent;border-color:var(--line2)}
+.bigv{font:500 1.6rem/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.bigv small{font-size:.78rem;color:var(--muted);margin-left:4px}
+.bar{position:relative;height:8px;background:var(--line);border-radius:4px;overflow:visible}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .18s ease}
+.bar .band{position:absolute;top:-2px;bottom:-2px;background:var(--accent-soft);border:1px dashed color-mix(in srgb,var(--accent) 50%,transparent);border-radius:3px}
+.bar .tick{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--fg);opacity:.75;border-radius:1px}
+.bar-legend{display:flex;justify-content:space-between;font:.7rem var(--f-mono);color:var(--faint)}
+.derived{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:700px){.derived{grid-template-columns:1.1fr 1fr}}
+.kpi{display:grid;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:14px}
+.kpi .bigv{font-size:2rem;color:var(--accent)}
+.kpi .assume{font-size:.76rem;color:var(--muted)}
+.radar-box{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:6px}
+.radar-box svg{width:100%;height:auto;max-width:380px;justify-self:center;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.76rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+/* explorer */
+.ctrlrow{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:end}
+.ctrl{display:grid;gap:2px;min-width:200px;flex:1 1 220px;max-width:340px}
+.ctrl label{font-size:.8rem;color:var(--muted)}
+.ctrl .sl-val{font-size:.85rem}
+.plot-wrap{position:relative;width:100%;min-width:0}
+canvas#scatter{width:100%;height:340px;display:block;background:var(--panel2);border:1px solid var(--line);border-radius:9px}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:.88rem;text-align:center;padding:20px;pointer-events:none}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:.8rem;min-width:760px}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:500 .68rem var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--panel2);position:sticky;top:0}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child,td.recipe,th.recipe{text-align:left}
+td.recipe{font-family:var(--f-sans);color:var(--muted);font-size:.76rem;white-space:normal;min-width:230px}
+tr:last-child td{border-bottom:0}
+td .good{color:var(--accent)} td .bad{color:var(--warm)}
+.stat-row{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.8rem;color:var(--muted)}
+.stat-row b{color:var(--fg);font-family:var(--f-mono);font-weight:500}
+.note{font-size:.8rem;color:var(--muted);border-left:2px solid var(--accent);padding-left:10px;max-width:90ch}
+/* about */
+.about{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:900px){.about{grid-template-columns:1fr 1fr}}
+.about ul{margin:0;padding-left:18px;display:grid;gap:8px;font-size:.86rem}
+.about li span.src{display:block;color:var(--faint);font-size:.76rem}
+.eq{font:.78rem/1.6 var(--f-mono);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow-x:auto;white-space:pre;color:var(--fg);margin:0}
+footer{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-wrap:wrap;gap:6px 24px;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+footer b{color:var(--fg);font-weight:500}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:.84rem;opacity:0;pointer-events:none;transition:.2s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+textarea#copyBox{width:100%;min-height:120px;font:.75rem var(--f-mono);background:var(--panel2);color:var(--fg);border:1px solid var(--line2);border-radius:8px;padding:10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="brand">
+    <span class="eyebrow">Tread compound · electric two-wheeler</span>
+    <h1>EV Compound Twin</h1>
+    <p>Change a tread recipe and see how rolling resistance, wet grip, wear, hardness, heat and cost are expected to move, compared with a conventional scooter tread.</p>
+  </div>
+  <span class="pill">Surrogate model · synthetic data</span>
+</header>
+
+<div class="banner"><b>What this is.</b> A surrogate model calibrated on published trends and supplier data. The numbers are synthetic, not Eurogrip lab data. The coefficients are meant to be retrained on in-house DMA (tan δ sweeps), DIN abrasion and Goodrich flexometer results before any decision is made on them.</div>
+
+<div class="grid2">
+  <!-- recipe -->
+  <section class="panel" aria-labelledby="h-recipe">
+    <div class="panel-head">
+      <h2 id="h-recipe">Recipe</h2>
+      <span class="eyebrow">phr = parts per 100 rubber</span>
+    </div>
+    <div class="btns">
+      <button id="btnIce" type="button">Load ICE baseline recipe</button>
+      <button id="btnEv" type="button">Load EV reference</button>
+      <button id="btnJson" type="button" class="ghost">Copy recipe JSON</button>
+    </div>
+    <div class="sliders" id="sliders"></div>
+    <div class="sanity">
+      <div><span>Polymer total</span><b>100 phr</b></div>
+      <div><span>NR share (balance)</span><b id="nrOut">–</b></div>
+      <div><span>Total filler</span><b id="fillOut">–</b></div>
+      <div><span>Silica / filler</span><b id="sfOut">–</b></div>
+      <div><span>Silane dose</span><b id="silOut">–</b></div>
+      <div><span>Plain oil (total − resin)</span><b id="oilOut">–</b></div>
+    </div>
+    <p class="warnline" id="warnLine" hidden></p>
+  </section>
+
+  <!-- outputs -->
+  <section class="panel" aria-labelledby="h-out">
+    <div class="panel-head">
+      <h2 id="h-out">Predicted properties</h2>
+      <span class="legend"><span><i style="background:var(--accent)"></i>better than ICE</span><span><i style="background:var(--warm)"></i>worse than ICE</span><span><i style="background:var(--fg);width:2px"></i>ICE baseline</span></span>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="derived">
+      <div class="radar-box">
+        <div class="panel-head"><h3>Magic triangle</h3><span class="eyebrow">index, ICE = 100</span></div>
+        <svg id="radar" viewBox="0 0 340 290" role="img" aria-label="Radar chart of rolling resistance, wet grip and wear indices"></svg>
+        <div class="legend" style="justify-content:center"><span><i style="background:var(--accent)"></i>Current recipe</span><span><i style="background:var(--warm)"></i>ICE baseline</span></div>
+      </div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div class="kpi">
+          <span class="eyebrow">Rolling-resistance index</span>
+          <span class="bigv" id="rrOut">–</span>
+          <span class="assume">tan δ 60 °C ÷ ICE tan δ 60 °C × 100. Lower is better.</span>
+        </div>
+        <div class="kpi">
+          <span class="eyebrow">Estimated e-scooter range gain</span>
+          <span class="bigv" id="rangeOut">–</span>
+          <span class="assume">Estimate only: 0.5 × (100 − RR index) × 0.35. Assumes rolling resistance is about 35 % of e-2W energy at city speed, tyre RR scales with tread tan δ 60 °C, and the tread drives about half of tyre RR.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- pareto -->
+<section class="panel" aria-labelledby="h-par">
+  <div class="panel-head">
+    <h2 id="h-par">Pareto explorer</h2>
+    <span class="eyebrow">minimise tan δ 60 · maximise tan δ 0 · minimise abrasion</span>
+  </div>
+  <div class="ctrlrow">
+    <div class="ctrl">
+      <div class="sl-top"><label for="capIn">Cost cap (index)</label><span class="sl-val" id="capOut">120</span></div>
+      <input type="range" id="capIn" min="95" max="150" step="1" value="120">
+    </div>
+    <div class="btns"><button id="btnExplore" class="primary" type="button">Explore 3,000 recipes</button>
+      <button id="btnParCsv" type="button">Download Pareto CSV</button>
+      <button id="btnParCopy" type="button" class="ghost">Copy CSV</button></div>
+  </div>
+  <div class="stat-row" id="parStats"></div>
+  <div class="plot-wrap">
+    <canvas id="scatter" aria-label="Scatter plot of tan delta 60 versus tan delta 0"></canvas>
+    <div class="empty" id="plotEmpty">Press “Explore 3,000 recipes” to sample the recipe space.</div>
+  </div>
+  <div class="legend"><span><i style="background:var(--dot)"></i>Feasible, dominated</span><span><i style="background:var(--accent)"></i>Pareto-optimal</span><span><i style="background:var(--warm)"></i>ICE baseline</span><span><i style="background:var(--fg)"></i>Current recipe</span><span>Feasible = cost ≤ cap and hardness 58–68 Shore A. Infeasible samples are not drawn.</span></div>
+  <h3>Top 5 Pareto recipes by composite score</h3>
+  <div class="tbl-wrap"><table id="parTbl"></table></div>
+</section>
+
+<!-- BO -->
+<section class="panel" aria-labelledby="h-bo">
+  <div class="panel-head">
+    <h2 id="h-bo">Suggest next 5 lab trials</h2>
+    <span class="eyebrow">Bayesian-optimisation style</span>
+  </div>
+  <p class="note">Acquisition = predicted composite score + κ × distance to the nearest tested recipe. Higher κ explores unfamiliar recipes; lower κ exploits the best predictions. In production this is a Gaussian-process surrogate retrained on real DMA, abrasion and flexometer data after every batch, with κ applied to its predictive uncertainty.</p>
+  <div class="ctrlrow">
+    <div class="ctrl">
+      <div class="sl-top"><label for="kapIn">Exploration weight κ</label><span class="sl-val" id="kapOut">0.30</span></div>
+      <input type="range" id="kapIn" min="0" max="1" step="0.05" value="0.3">
+    </div>
+    <div class="btns"><button id="btnSuggest" class="primary" type="button">Suggest 5 trials</button>
+      <button id="btnSugCsv" type="button">Download suggestions CSV</button>
+      <button id="btnSugCopy" type="button" class="ghost">Copy CSV</button>
+      <button id="btnReset" type="button" class="ghost">Reset tested list</button></div>
+  </div>
+  <div class="tbl-wrap"><table id="sugTbl"></table></div>
+  <h3>Tested recipes <span class="muted small" id="testedCount"></span></h3>
+  <div class="tbl-wrap"><table id="testTbl"></table></div>
+  <textarea id="copyBox" hidden aria-label="Copied text"></textarea>
+</section>
+
+<!-- about -->
+<section class="panel" aria-labelledby="h-about">
+  <div class="panel-head"><h2 id="h-about">About the model</h2><span class="eyebrow">trend assumptions and sources by type</span></div>
+  <div class="about">
+    <div style="display:grid;gap:12px;min-width:0">
+      <ul>
+        <li>Silica with silane replacing carbon black lowers tan δ 60 °C by roughly 20–30 % at equal hardness.<span class="src">Supplier technical bulletins (Evonik / Solvay type silica and silane data); Rubber Chemistry and Technology literature on “green tyre” compounds.</span></li>
+        <li>Silane coupling efficiency rises with dose and saturates near 8–9 % of silica mass. Below about 6 % the filler network stays strong (Payne effect), which raises hysteresis, hardness and wear.<span class="src">Silane supplier dosing guides; published strain-sweep (Payne) studies.</span></li>
+        <li>Higher vinyl content in S-SBR raises Tg, which lifts tan δ 0 °C strongly and tan δ 60 °C mildly.<span class="src">Polymer supplier S-SBR grade sheets; DMA studies of SBR microstructure.</span></li>
+        <li>High-cis BR improves abrasion resistance and lowers tan δ 0 °C (wet grip). NR lowers cost and tan δ 60 °C slightly but weakens wet grip.<span class="src">Tyre compounding handbooks; polymer blend studies.</span></li>
+        <li>Traction resin raises tan δ 0 °C and costs some rolling resistance and wear. Plain process oil softens the compound and lowers Tg.<span class="src">Resin supplier application notes (hydrocarbon / terpene-phenolic type).</span></li>
+        <li>Sulfur raises crosslink density, which raises hardness and lowers tan δ. Total filler raises hardness and heat build-up.<span class="src">Standard vulcanisation and reinforcement texts.</span></li>
+        <li>Heat build-up follows tan δ 60 °C and filler loading. Cost uses indicative Indian bulk prices per kg, normalised so the ICE baseline is 100 (about ₹165/kg).<span class="src">Flexometer correlation studies; public raw-material price ranges, rounded.</span></li>
+      </ul>
+      <p class="small muted">Every equation is written as the ICE baseline value plus deviations from the ICE recipe. The baseline recipe therefore reproduces the baseline outputs exactly. All coefficients live in one <span class="mono">MODEL</span> object in the page source so they can be refitted to lab data.</p>
+    </div>
+    <pre class="eq" id="eqs"></pre>
+  </div>
+</section>
+
+<footer>
+  <span><b>Gaurav Agrawal</b> · B.Tech Chemical Engineering, MNIT Jaipur</span>
+  <span>Eurogrip x Unstop Case Study 2 · Round 1 demo</span>
+  <span>Literature-calibrated surrogate; not Eurogrip data</span>
+</footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ================================================================
+   MODEL — every coefficient of the surrogate lives here.
+   Form: y = y0 (ICE baseline value) + sum of coefficient × (x − x_ICE)
+         + mild saturation / penalty terms that are zero at the ICE recipe.
+   Refit: replace these numbers with a regression on in-house DMA,
+   DIN abrasion (ISO 4649) and Goodrich flexometer (ASTM D623) data.
+   ================================================================ */
+const MODEL = {
+  // Reference recipe for all deviation terms = conventional carbon-black NR/SBR scooter tread
+  ref: {silica:0, silane:0, cb:55, ssbr:35, vinyl:20, br:15, oil:10, resin:0, sulfur:2.0},
+  coupling: {
+    tau: 3.0,            // silane efficiency e = 1 − exp(−silane% / tau); ≈0.93 at 8 %, saturates by 9–10 %
+    payneThreshold: 6,   // below this silane % the uncoupled-silica (Payne) penalty switches on
+    silicaRef: 65        // penalty scaled to silica phr / 65
+  },
+  tanD60: {              // rolling-resistance proxy (lower = better)
+    y0: 0.19,
+    cb: 0.0024,          // per phr carbon black
+    silica: 0.0016,      // per phr silica, uncoupled
+    couplingRelief: 0.70,// fraction of silica hysteresis removed at full coupling
+    ssbr: -0.06,         // per unit S-SBR share (functionalised S-SBR)
+    vinylXssbr: 0.0005,  // per (vinyl% × S-SBR share) point
+    br: -0.04,           // per unit BR share
+    nr: -0.02,           // per unit NR share (NR slightly lowers tan δ 60)
+    oil: 0.0006,         // per phr plain oil
+    resin: 0.0010,       // per phr traction resin
+    sulfur: -0.015,      // per phr sulfur
+    crowdF0: 60, crowd: 0.00002, // filler crowding: + crowd × (filler − 60)² above 60 phr
+    payne: 0.04,         // × Payne penalty index (0–1+)
+    min: 0.05
+  },
+  tanD0: {               // wet-grip proxy (higher = better)
+    y0: 0.30,
+    vinylXssbr: 0.004,   // per (vinyl% × S-SBR share) point
+    br: -0.25,           // per unit BR share
+    nr: -0.10,           // per unit NR share
+    resin: 0.004,        // per phr resin
+    silicaCoupled: 0.0006, // per phr coupled silica
+    cb: 0.001,           // per phr carbon black
+    oil: -0.002,         // per phr plain oil (lowers Tg)
+    sulfur: -0.04,       // per phr sulfur
+    payne: -0.03,
+    min: 0.05
+  },
+  abrasion: {            // DIN abrasion loss, mm³ (lower = better)
+    y0: 110,
+    cb: -0.9,            // per phr carbon black (reinforcement)
+    silicaCoupled: -0.75,// per phr coupled silica
+    silicaUncoupled: 0.4,// per phr uncoupled silica
+    br: -80,             // per unit BR share
+    vinylXssbr: 0.5,     // per (vinyl% × S-SBR share) point
+    oil: 0.8,            // per phr plain oil
+    resin: 0.6,          // per phr resin
+    sulfurOpt: 1.8, sulfurCurv: 10, // + curv × [(S − opt)² − (S_ref − opt)²]
+    lowFillerF0: 55, lowFiller: 0.02, // + k × (55 − filler)² below 55 phr
+    payne: 25,
+    min: 40
+  },
+  hardness: {            // Shore A
+    y0: 63,
+    filler: 0.32,        // per phr total filler
+    plasticiser: -0.45,  // per phr total plasticiser (oil + resin)
+    sulfur: 6,           // per phr sulfur
+    payne: 4
+  },
+  heat: {                // Goodrich flexometer ΔT proxy, °C
+    y0: 28,
+    perTanD60: 110,      // °C per unit change in tan δ 60
+    filler: 0.15         // per phr total filler
+  },
+  cost: {                // indicative ₹/kg; index normalised to ICE = 100
+    baseRsPerKg: 165,
+    price: {nr:180, ssbr:230, ssbrVinylPremium:0.5, br:190, cb:110, silica:120, silane:900, oil:90, resin:250, sulfur:30, pack:250},
+    packPhr: 10          // ZnO, stearic acid, antidegradants, accelerators (fixed)
+  },
+  range: {rrShareOfEnergy: 0.35, treadShareOfRR: 0.5},
+  score: {wRR: 0.45, wWet: 0.30, wWear: 0.25, hardTarget: 63, hardTol: 3, hardPen: 0.05, costPen: 0.01}
+};
+
+/* ---------------- inputs ---------------- */
+const SPEC = {
+  silica:{label:"Silica",unit:"phr",min:0,max:90,step:1,hint:"Precipitated highly dispersible silica",group:"Filler system"},
+  silane:{label:"Silane",unit:"% of silica",min:0,max:12,step:0.5,hint:"Sulfur-silane coupling agent (TESPT / TESPD type)"},
+  cb:{label:"Carbon black",unit:"phr",min:0,max:70,step:1,hint:"Tread-grade furnace black (N2xx / N3xx)"},
+  ssbr:{label:"S-SBR share",unit:"% polymer",min:0,max:100,step:1,hint:"Solution SBR, end-functionalised",group:"Polymer blend"},
+  vinyl:{label:"Vinyl in S-SBR",unit:"%",min:10,max:70,step:1,hint:"Higher vinyl raises Tg and wet grip"},
+  br:{label:"High-cis BR share",unit:"% polymer",min:0,max:50,step:1,hint:"Wear resistance, low-temperature flexibility"},
+  oil:{label:"Plasticiser total",unit:"phr",min:0,max:40,step:1,hint:"Process oil plus resin (TDAE / RAE type oil)",group:"Plasticiser and cure"},
+  resin:{label:"Traction resin",unit:"phr",min:0,max:25,step:1,hint:"Counted inside the plasticiser total"},
+  sulfur:{label:"Sulfur",unit:"phr",min:1.0,max:2.5,step:0.05,hint:"Cure level"}
+};
+const KEYS = Object.keys(SPEC);
+const ICE = {silica:0, silane:0, cb:55, ssbr:35, vinyl:20, br:15, oil:10, resin:0, sulfur:2.0};
+const EVREF = {silica:65, silane:8, cb:8, ssbr:60, vinyl:45, br:25, oil:15, resin:8, sulfur:1.6};
+
+/* ---------------- surrogate ---------------- */
+function costRaw(x){
+  const P = MODEL.cost.price, ss = x.ssbr/100, b = x.br/100, n = Math.max(0, 1-ss-b);
+  const resin = Math.min(x.resin, x.oil), oil = x.oil - resin, silane = x.silica*x.silane/100;
+  const rs = 100*(n*P.nr + ss*(P.ssbr + P.ssbrVinylPremium*(x.vinyl-20)) + b*P.br)
+    + x.cb*P.cb + x.silica*P.silica + silane*P.silane + oil*P.oil + resin*P.resin + x.sulfur*P.sulfur + MODEL.cost.packPhr*P.pack;
+  const phr = 100 + x.cb + x.silica + silane + x.oil + x.sulfur + MODEL.cost.packPhr;
+  return rs/phr;
+}
+const COST_REF = costRaw(MODEL.ref);
+
+function predictRaw(x){
+  const M = MODEL, R = M.ref;
+  const s = x.silica, c = x.cb, ss = x.ssbr/100, b = x.br/100, n = Math.max(0, 1-ss-b), S = x.sulfur;
+  const ssR = R.ssbr/100, bR = R.br/100, nR = 1-ssR-bR;
+  const resin = Math.min(x.resin, x.oil), oil = x.oil - resin, oilR = R.oil - R.resin;
+  const F = s + c, FR = R.silica + R.cb;
+  const e = 1 - Math.exp(-x.silane / M.coupling.tau);
+  const pay = (s / M.coupling.silicaRef) * Math.max(0, M.coupling.payneThreshold - x.silane) / M.coupling.payneThreshold;
+  const vx = x.vinyl*ss - R.vinyl*ssR;
+
+  const T = M.tanD60;
+  const t60 = Math.max(T.min, T.y0 + T.cb*(c-R.cb) + T.silica*s*(1 - T.couplingRelief*e)
+    + T.ssbr*(ss-ssR) + T.vinylXssbr*vx + T.br*(b-bR) + T.nr*(n-nR)
+    + T.oil*(oil-oilR) + T.resin*(resin-R.resin) + T.sulfur*(S-R.sulfur)
+    + T.crowd*(Math.max(0, F-T.crowdF0)**2 - Math.max(0, FR-T.crowdF0)**2) + T.payne*pay);
+
+  const W = M.tanD0;
+  const t0 = Math.max(W.min, W.y0 + W.vinylXssbr*vx + W.br*(b-bR) + W.nr*(n-nR) + W.resin*(resin-R.resin)
+    + W.silicaCoupled*s*e + W.cb*(c-R.cb) + W.oil*(oil-oilR) + W.sulfur*(S-R.sulfur) + W.payne*pay);
+
+  const A = M.abrasion;
+  const abr = Math.max(A.min, A.y0 + A.cb*(c-R.cb) + A.silicaCoupled*s*e + A.silicaUncoupled*s*(1-e)
+    + A.br*(b-bR) + A.vinylXssbr*vx + A.oil*(oil-oilR) + A.resin*(resin-R.resin)
+    + A.sulfurCurv*((S-A.sulfurOpt)**2 - (R.sulfur-A.sulfurOpt)**2)
+    + A.lowFiller*(Math.max(0, A.lowFillerF0-F)**2 - Math.max(0, A.lowFillerF0-FR)**2) + A.payne*pay);
+
+  const H = M.hardness;
+  const hard = H.y0 + H.filler*(F-FR) + H.plasticiser*(x.oil-R.oil) + H.sulfur*(S-R.sulfur) + H.payne*pay;
+
+  const heat = M.heat.y0 + M.heat.perTanD60*(t60 - T.y0) + M.heat.filler*(F-FR);
+
+  const cost = costRaw(x)/COST_REF*100;
+  return {t60, t0, abr, hard, heat, cost, rsKg: M.cost.baseRsPerKg*cost/100, nr:n*100, F, e, pay};
+}
+const BASE = predictRaw(ICE);
+
+function predict(x){
+  const p = predictRaw(x);
+  p.rr = p.t60 / BASE.t60 * 100;
+  p.range = MODEL.range.treadShareOfRR * (100 - p.rr) * MODEL.range.rrShareOfEnergy;
+  p.score = score(p);
+  return p;
+}
+let costCap = 120;
+function score(p){
+  const W = MODEL.score;
+  return W.wRR*(1 - p.t60/BASE.t60) + W.wWet*(p.t0/BASE.t0 - 1) + W.wWear*(1 - p.abr/BASE.abr)
+    - W.hardPen*Math.max(0, Math.abs(p.hard - W.hardTarget) - W.hardTol)
+    - W.costPen*Math.max(0, p.cost - costCap);
+}
+function feasible(p){ return p.cost <= costCap && p.hard >= 58 && p.hard <= 68; }
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+const r2 = v => Math.round(v*100)/100;
+function fmtIn(k, v){ return k === "sulfur" ? v.toFixed(2) : (k === "silane" ? v.toFixed(1) : String(Math.round(v))); }
+function recipeText(x){
+  const n = Math.max(0, 100 - x.ssbr - x.br);
+  return `Si ${x.silica} · silane ${x.silane}% · CB ${x.cb} · S-SBR ${x.ssbr}% (v${x.vinyl}) · BR ${x.br}% · NR ${n}% · plast ${x.oil} (resin ${x.resin}) · S ${x.sulfur.toFixed(2)}`;
+}
+let toastT;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("on"), 1800); }
+function copyText(text, label){
+  const fallback = () => { const box = $("copyBox"); box.hidden = false; box.value = text; box.focus(); box.select(); toast("Clipboard blocked. Text selected below, press Ctrl+C."); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>toast(label + " copied"), fallback);
+    else fallback();
+  } catch (e) { fallback(); }
+}
+function download(name, text){
+  try {
+    const url = URL.createObjectURL(new Blob([text], {type:"text/csv"}));
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast("Saved " + name + ". If nothing downloaded, use Copy CSV.");
+  } catch (e) { copyText(text, "CSV"); }
+}
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function sampleRecipe(rng){
+  const q = (k, v) => r2(Math.round(v/SPEC[k].step)*SPEC[k].step);
+  const u = (a, b) => a + (b-a)*rng();
+  const ssbr = q("ssbr", u(0, 100)), br = q("br", u(0, Math.min(50, 100-ssbr)));
+  const oil = q("oil", u(0, 40)), resin = q("resin", u(0, Math.min(25, oil)));
+  return {silica:q("silica", u(0,90)), silane:q("silane", u(0,12)), cb:q("cb", u(0,70)), ssbr, vinyl:q("vinyl", u(10,70)), br, oil, resin, sulfur:q("sulfur", u(1,2.5))};
+}
+function dist(a, b){
+  let s = 0;
+  for (const k of KEYS){ const d = (a[k]-b[k])/(SPEC[k].max-SPEC[k].min); s += d*d; }
+  return Math.sqrt(s/KEYS.length);
+}
+const CSV_HEAD = KEYS.join(",") + ",nr_pct,tanD60,tanD0,abrasion_mm3,hardness_shoreA,heat_buildup_C,cost_index,rs_per_kg,rr_index,range_gain_pct,score";
+function csvRow(x, p){
+  return KEYS.map(k=>x[k]).join(",") + "," + [r2(p.nr), p.t60.toFixed(4), p.t0.toFixed(4), p.abr.toFixed(1), p.hard.toFixed(1), p.heat.toFixed(1), p.cost.toFixed(1), p.rsKg.toFixed(0), p.rr.toFixed(1), p.range.toFixed(2), p.score.toFixed(4)].join(",");
+}
+
+/* ---------------- state + recipe panel ---------------- */
+let state = Object.assign({}, EVREF);
+
+function buildSliders(){
+  const host = $("sliders"); let html = "";
+  for (const k of KEYS){
+    const s = SPEC[k];
+    if (s.group) html += `<div class="group-label">${s.group}</div>`;
+    html += `<div class="sl"><div class="sl-top"><label for="in-${k}">${s.label}<span class="hint">${s.hint}</span></label><span class="sl-val" id="v-${k}"></span></div>
+      <input type="range" id="in-${k}" min="${s.min}" max="${s.max}" step="${s.step}"></div>`;
+  }
+  host.innerHTML = html;
+  for (const k of KEYS) $("in-" + k).addEventListener("input", e => setVal(k, parseFloat(e.target.value)));
+}
+function setVal(k, v){
+  state[k] = r2(v);
+  // keep polymer at 100 phr: S-SBR + BR ≤ 100, NR takes the balance
+  if (k === "ssbr" && state.ssbr + state.br > 100) state.br = Math.max(0, 100 - state.ssbr);
+  if (k === "br" && state.ssbr + state.br > 100) state.ssbr = Math.max(0, 100 - state.br);
+  // resin is part of the plasticiser total
+  if (k === "resin" && state.resin > state.oil) state.oil = Math.min(SPEC.oil.max, state.resin);
+  if (k === "oil" && state.resin > state.oil) state.resin = state.oil;
+  render();
+}
+function loadRecipe(x, msg){ state = Object.assign({}, x); render(); if (msg) toast(msg); }
+
+/* ---------------- outputs ---------------- */
+const OUT = [
+  {k:"t60", name:"tan δ at 60 °C", sub:"Rolling-resistance proxy · lower is better", dir:-1, d:3, unit:"", lo:0, hi:0.32},
+  {k:"t0", name:"tan δ at 0 °C", sub:"Wet-grip proxy · higher is better", dir:1, d:3, unit:"", lo:0, hi:0.65},
+  {k:"abr", name:"DIN abrasion loss", sub:"Wear · lower is better", dir:-1, d:0, unit:"mm³", lo:0, hi:220},
+  {k:"hard", name:"Hardness", sub:"Target band 60–66 Shore A", dir:0, d:1, unit:"Shore A", lo:45, hi:85, band:[60,66]},
+  {k:"heat", name:"Heat build-up", sub:"Flexometer ΔT proxy · lower is better", dir:-1, d:1, unit:"°C", lo:0, hi:50},
+  {k:"cost", name:"Cost index", sub:"ICE baseline = 100", dir:-1, d:0, unit:"", lo:0, hi:180}
+];
+function buildCards(){
+  $("cards").innerHTML = OUT.map(o => `<div class="card" id="c-${o.k}">
+    <div class="card-top"><div><h3>${o.name}</h3><div class="sub">${o.sub}</div></div><span class="chip flat" id="ch-${o.k}">–</span></div>
+    <div class="bigv" id="o-${o.k}">–</div>
+    <div class="bar">${o.band ? `<div class="band" style="left:${pct(o, o.band[0])}%;width:${pct(o, o.band[1]) - pct(o, o.band[0])}%"></div>` : ""}<div class="fill" id="f-${o.k}"></div><div class="tick" style="left:calc(${pct(o, BASE[o.k])}% - 1px)" title="ICE baseline"></div></div>
+    <div class="bar-legend"><span>ICE ${BASE[o.k].toFixed(o.d)}</span><span id="x-${o.k}"></span></div></div>`).join("");
+}
+function pct(o, v){ return Math.max(0, Math.min(100, (v - o.lo)/(o.hi - o.lo)*100)); }
+
+function render(){
+  for (const k of KEYS){
+    $("in-" + k).value = state[k];
+    $("v-" + k).innerHTML = fmtIn(k, state[k]) + `<small>${SPEC[k].unit}</small>`;
+  }
+  const p = predict(state);
+  $("nrOut").textContent = p.nr.toFixed(0) + " %";
+  $("fillOut").textContent = p.F.toFixed(0) + " phr";
+  $("sfOut").textContent = p.F > 0 ? (state.silica/p.F*100).toFixed(0) + " %" : "–";
+  $("silOut").textContent = (state.silica*state.silane/100).toFixed(1) + " phr";
+  $("oilOut").textContent = (state.oil - Math.min(state.resin, state.oil)).toFixed(0) + " phr";
+  const w = $("warnLine");
+  const warns = [];
+  if (state.silica > 20 && state.silane < 6) warns.push("Silane below 6 % of silica: Payne-effect penalty on hysteresis, hardness and wear.");
+  if (p.hard < 60 || p.hard > 66) warns.push("Hardness outside the 60–66 Shore A target band.");
+  if (p.F < 40) warns.push("Total filler under 40 phr: weak reinforcement for a tread.");
+  w.hidden = warns.length === 0; w.textContent = warns.join(" ");
+
+  for (const o of OUT){
+    const v = p[o.k], b = BASE[o.k];
+    $("o-" + o.k).innerHTML = v.toFixed(o.d) + (o.unit ? `<small>${o.unit}</small>` : "");
+    let cls, txt;
+    if (o.dir === 0){
+      const inBand = v >= o.band[0] && v <= o.band[1];
+      cls = inBand ? "good" : "bad"; txt = inBand ? "in band" : (v < o.band[0] ? "too soft" : "too hard");
+    } else {
+      const rel = (v - b)/b*100, better = rel*o.dir > 0;
+      cls = Math.abs(rel) < 1 ? "flat" : (better ? "good" : "bad");
+      txt = (rel >= 0 ? "+" : "−") + Math.abs(rel).toFixed(1) + " % vs ICE";
+    }
+    const ch = $("ch-" + o.k); ch.className = "chip " + cls; ch.textContent = txt;
+    const f = $("f-" + o.k); f.style.width = pct(o, v) + "%";
+    f.style.background = cls === "good" ? "var(--accent)" : cls === "bad" ? "var(--warm)" : "var(--muted)";
+    $("x-" + o.k).textContent = o.k === "cost" ? "≈ ₹" + p.rsKg.toFixed(0) + "/kg" : "now " + v.toFixed(o.d);
+  }
+  $("rrOut").textContent = p.rr.toFixed(0);
+  $("rangeOut").textContent = (p.range >= 0 ? "+" : "−") + Math.abs(p.range).toFixed(1) + " %";
+  $("rangeOut").style.color = p.range >= 0 ? "var(--accent)" : "var(--warm)";
+  drawRadar(p);
+  if (samples) drawScatter();
+}
+
+/* ---------------- radar ---------------- */
+function drawRadar(p){
+  const cx = 170, cy = 158, R = 104, MAX = 160;
+  const axes = [
+    {name:"Rolling resistance", sub:"ICE tan δ60 ÷ tan δ60", v: BASE.t60/p.t60*100, a:-90},
+    {name:"Wet grip", sub:"tan δ0 ÷ ICE tan δ0", v: p.t0/BASE.t0*100, a:30},
+    {name:"Wear", sub:"ICE abrasion ÷ abrasion", v: BASE.abr/p.abr*100, a:150}
+  ];
+  const pt = (a, val) => { const r = Math.min(val, MAX)/MAX*R, t = a*Math.PI/180; return [cx + r*Math.cos(t), cy + r*Math.sin(t)]; };
+  let s = "";
+  for (const ring of [50, 100, 150]){
+    const pts = axes.map(ax => pt(ax.a, ring).join(",")).join(" ");
+    s += `<polygon points="${pts}" fill="none" stroke="var(--line2)" stroke-width="1" ${ring === 100 ? "" : 'stroke-dasharray="3 4"'}/>`;
+    const [lx, ly] = pt(-90, ring); s += `<text x="${lx + 5}" y="${ly + 4}" font-size="9" fill="var(--faint)" font-family="var(--f-mono)">${ring}</text>`;
+  }
+  for (const ax of axes){ const [x, y] = pt(ax.a, MAX); s += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line2)" stroke-width="1"/>`; }
+  s += `<polygon points="${axes.map(ax => pt(ax.a, 100).join(",")).join(" ")}" fill="var(--warm-soft)" stroke="var(--warm)" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+  s += `<polygon points="${axes.map(ax => pt(ax.a, ax.v).join(",")).join(" ")}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>`;
+  for (const ax of axes){ const [x, y] = pt(ax.a, ax.v); s += `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--accent)"/>`; }
+  const lab = [[cx, 18, "middle"], [cx + 104, cy + 84, "middle"], [cx - 104, cy + 84, "middle"]];
+  axes.forEach((ax, i) => {
+    const [x, y, anc] = lab[i];
+    s += `<text x="${x}" y="${y}" text-anchor="${anc}" font-size="11.5" font-weight="600" fill="var(--fg)" font-family="var(--f-sans)">${ax.name} <tspan fill="var(--accent)" font-family="var(--f-mono)">${ax.v.toFixed(0)}</tspan></text>`;
+    s += `<text x="${x}" y="${y + 13}" text-anchor="${anc}" font-size="9" fill="var(--faint)" font-family="var(--f-mono)">${ax.sub}</text>`;
+  });
+  $("radar").innerHTML = s;
+}
+
+/* ---------------- Pareto explorer ---------------- */
+let samples = null, seed = 20261011, front = [];
+function explore(){
+  const t0 = performance.now(), rng = mulberry32(seed++);
+  samples = [];
+  for (let i = 0; i < 3000; i++){ const x = sampleRecipe(rng); samples.push({x, p: predict(x)}); }
+  computeFront();
+  $("plotEmpty").hidden = true;
+  drawScatter();
+  toast(`Sampled 3,000 recipes in ${(performance.now() - t0).toFixed(0)} ms`);
+}
+function computeFront(){
+  if (!samples) return;
+  for (const s of samples){ s.p.score = score(s.p); s.feas = feasible(s.p); s.par = false; }
+  const F = samples.filter(s => s.feas);
+  for (const a of F){
+    let dom = false;
+    for (const b of F){
+      if (b === a) continue;
+      if (b.p.t60 <= a.p.t60 && b.p.t0 >= a.p.t0 && b.p.abr <= a.p.abr && (b.p.t60 < a.p.t60 || b.p.t0 > a.p.t0 || b.p.abr < a.p.abr)){ dom = true; break; }
+    }
+    a.par = !dom;
+  }
+  front = F.filter(s => s.par).sort((a, b) => b.p.score - a.p.score);
+  $("parStats").innerHTML = `<span>Sampled <b>3,000</b></span><span>Feasible <b>${F.length}</b></span><span>Pareto-optimal <b>${front.length}</b></span><span>Cost cap <b>≤ ${costCap}</b></span><span>Hardness <b>58–68</b></span>`;
+  renderParTable();
+}
+function renderParTable(){
+  const head = `<tr><th>#</th><th class="recipe">Recipe</th><th>tan δ60</th><th>tan δ0</th><th>Abrasion</th><th>Shore A</th><th>Cost</th><th>Range</th><th>Score</th><th></th></tr>`;
+  if (!front.length){ $("parTbl").innerHTML = head + `<tr><td colspan="10" class="recipe">${samples ? "No feasible recipes under this cost cap. Raise the cap." : "Run the explorer to fill this table."}</td></tr>`; return; }
+  $("parTbl").innerHTML = head + front.slice(0, 5).map((s, i) => `<tr><td>${i + 1}</td><td class="recipe">${recipeText(s.x)}</td><td>${s.p.t60.toFixed(3)}</td><td>${s.p.t0.toFixed(3)}</td><td>${s.p.abr.toFixed(0)}</td><td>${s.p.hard.toFixed(1)}</td><td>${s.p.cost.toFixed(0)}</td><td>+${s.p.range.toFixed(1)}%</td><td>${s.p.score.toFixed(3)}</td><td><button class="tiny" type="button" data-par="${i}">Load</button></td></tr>`).join("");
+}
+function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function niceTicks(lo, hi, n){
+  const span = hi - lo, step0 = span/n, mag = Math.pow(10, Math.floor(Math.log10(step0))), r = step0/mag;
+  const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10)*mag, out = [];
+  for (let v = Math.ceil(lo/step)*step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+function drawScatter(){
+  const cv = $("scatter"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
+  cv.width = W*dpr; cv.height = H*dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const C = {line: css("--line"), faint: css("--faint"), muted: css("--muted"), dot: css("--dot"), acc: css("--accent"), warm: css("--warm"), fg: css("--fg")};
+  const feas = samples.filter(s => s.feas), cur = predict(state);
+  const pts = feas.map(s => s.p).concat([BASE, cur]);
+  let x0 = Math.min(...pts.map(p => p.t60)), x1 = Math.max(...pts.map(p => p.t60)), y0 = Math.min(...pts.map(p => p.t0)), y1 = Math.max(...pts.map(p => p.t0));
+  const px = (x1 - x0)*0.06 || 0.01, py = (y1 - y0)*0.06 || 0.01; x0 -= px; x1 += px; y0 -= py; y1 += py;
+  const m = {l: 52, r: 14, t: 14, b: 40}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const X = v => m.l + (v - x0)/(x1 - x0)*iw, Y = v => m.t + ih - (v - y0)/(y1 - y0)*ih;
+  g.font = `11px ${css("--f-mono")}`; g.lineWidth = 1;
+  for (const t of niceTicks(x0, x1, 6)){ g.strokeStyle = C.line; g.beginPath(); g.moveTo(X(t), m.t); g.lineTo(X(t), m.t + ih); g.stroke(); g.fillStyle = C.faint; g.textAlign = "center"; g.fillText(t.toFixed(2), X(t), m.t + ih + 15); }
+  for (const t of niceTicks(y0, y1, 5)){ g.strokeStyle = C.line; g.beginPath(); g.moveTo(m.l, Y(t)); g.lineTo(m.l + iw, Y(t)); g.stroke(); g.fillStyle = C.faint; g.textAlign = "right"; g.fillText(t.toFixed(2), m.l - 6, Y(t) + 4); }
+  g.fillStyle = C.muted; g.textAlign = "center"; g.fillText("tan δ at 60 °C  (rolling resistance, lower is better →  left)", m.l + iw/2, H - 6);
+  g.save(); g.translate(13, m.t + ih/2); g.rotate(-Math.PI/2); g.fillText("tan δ at 0 °C  (wet grip, higher is better)", 0, 0); g.restore();
+  g.fillStyle = C.dot; g.globalAlpha = 0.7;
+  for (const s of feas) if (!s.par){ g.beginPath(); g.arc(X(s.p.t60), Y(s.p.t0), 2, 0, 7); g.fill(); }
+  g.globalAlpha = 1; g.fillStyle = C.acc;
+  for (const s of feas) if (s.par){ g.beginPath(); g.arc(X(s.p.t60), Y(s.p.t0), 3.2, 0, 7); g.fill(); }
+  const ring = (p, col, lab) => { g.strokeStyle = col; g.lineWidth = 2.2; g.beginPath(); g.arc(X(p.t60), Y(p.t0), 7, 0, 7); g.stroke(); g.fillStyle = col; g.textAlign = "left"; g.font = `600 11px ${css("--f-sans")}`; g.fillText(lab, Math.min(X(p.t60) + 10, W - 70), Y(p.t0) - 8); };
+  ring(BASE, C.warm, "ICE"); ring(cur, C.fg, "Current");
+}
+
+/* ---------------- lab-trial suggestions ---------------- */
+let kappa = 0.3, tested = [], suggestions = [];
+function resetTested(){
+  tested = [{x: Object.assign({}, ICE), label: "ICE baseline"}, {x: Object.assign({}, EVREF), label: "EV reference"}];
+}
+function suggest(){
+  const rng = mulberry32(777 + tested.length*131), cands = [];
+  for (let i = 0; i < 2500; i++){ const x = sampleRecipe(rng), p = predict(x); if (feasible(p)) cands.push({x, p}); }
+  for (const c of cands){ c.d = Math.min(...tested.map(t => dist(c.x, t.x))); }
+  suggestions = [];
+  for (let j = 0; j < 5 && cands.length; j++){
+    let best = null, bv = -Infinity;
+    for (const c of cands){ const a = c.p.score + kappa*c.d; if (a > bv){ bv = a; best = c; } }
+    best.acq = bv; best.dTested = best.d; suggestions.push(best);
+    cands.splice(cands.indexOf(best), 1);
+    for (const c of cands) c.d = Math.min(c.d, dist(c.x, best.x)); // keep the batch diverse
+  }
+  renderSug(); renderTested();
+}
+function renderSug(){
+  const head = `<tr><th>#</th><th class="recipe">Proposed trial</th><th>tan δ60</th><th>tan δ0</th><th>Abrasion</th><th>Shore A</th><th>Cost</th><th>Score</th><th>Novelty</th><th>Acq.</th><th></th></tr>`;
+  $("sugTbl").innerHTML = head + (suggestions.length ? suggestions.map((s, i) => `<tr><td>${i + 1}</td><td class="recipe">${recipeText(s.x)}</td><td>${s.p.t60.toFixed(3)}</td><td>${s.p.t0.toFixed(3)}</td><td>${s.p.abr.toFixed(0)}</td><td>${s.p.hard.toFixed(1)}</td><td>${s.p.cost.toFixed(0)}</td><td>${s.p.score.toFixed(3)}</td><td>${s.dTested.toFixed(3)}</td><td>${s.acq.toFixed(3)}</td><td><span class="btns" style="flex-wrap:nowrap"><button class="tiny" type="button" data-sload="${i}">Load</button><button class="tiny" type="button" data-stest="${i}">Mark as tested</button></span></td></tr>`).join("")
+    : `<tr><td colspan="11" class="recipe">No feasible candidates under this cost cap.</td></tr>`);
+}
+function renderTested(){
+  $("testedCount").textContent = `(${tested.length})`;
+  $("testTbl").innerHTML = `<tr><th>#</th><th class="recipe">Recipe</th><th>tan δ60</th><th>tan δ0</th><th>Abrasion</th><th>Shore A</th><th>Cost</th><th>Score</th><th></th></tr>` +
+    tested.map((t, i) => { const p = predict(t.x); return `<tr><td>${i + 1}</td><td class="recipe"><b style="color:var(--fg);font-weight:500">${t.label}</b><br>${recipeText(t.x)}</td><td>${p.t60.toFixed(3)}</td><td>${p.t0.toFixed(3)}</td><td>${p.abr.toFixed(0)}</td><td>${p.hard.toFixed(1)}</td><td>${p.cost.toFixed(0)}</td><td>${p.score.toFixed(3)}</td><td><button class="tiny" type="button" data-tload="${i}">Load</button></td></tr>`; }).join("");
+}
+
+/* ---------------- equations panel ---------------- */
+function renderEqs(){
+  const T = MODEL.tanD60, W = MODEL.tanD0, A = MODEL.abrasion, H = MODEL.hardness, Ht = MODEL.heat, C = MODEL.coupling;
+  $("eqs").textContent =
+`Notation: Δ = change from the ICE recipe. Shares are fractions (0–1).
+e   = 1 − exp(−silane% / ${C.tau})            silane coupling efficiency
+Pay = (silica/${C.silicaRef}) × max(0, ${C.payneThreshold} − silane%) / ${C.payneThreshold}   Payne penalty
+VX  = vinyl% × S-SBR share                    (ICE: 20 × 0.35 = 7)
+oil = plasticiser total − resin
+
+tan δ60 = ${T.y0} + ${T.cb}·ΔCB + ${T.silica}·Si·(1 − ${T.couplingRelief}·e)
+          ${T.ssbr}·ΔSSBR + ${T.vinylXssbr}·ΔVX ${T.br}·ΔBR ${T.nr}·ΔNR
+          + ${T.oil}·Δoil + ${T.resin}·Δresin ${T.sulfur}·ΔS
+          + ${T.crowd}·[max(0, filler − ${T.crowdF0})²] + ${T.payne}·Pay
+
+tan δ0  = ${W.y0} + ${W.vinylXssbr}·ΔVX ${W.br}·ΔBR ${W.nr}·ΔNR + ${W.resin}·Δresin
+          + ${W.silicaCoupled}·Si·e + ${W.cb}·ΔCB ${W.oil}·Δoil ${W.sulfur}·ΔS ${W.payne}·Pay
+
+DIN abr = ${A.y0} ${A.cb}·ΔCB ${A.silicaCoupled}·Si·e + ${A.silicaUncoupled}·Si·(1 − e) ${A.br}·ΔBR
+          + ${A.vinylXssbr}·ΔVX + ${A.oil}·Δoil + ${A.resin}·Δresin
+          + ${A.sulfurCurv}·Δ[(S − ${A.sulfurOpt})²] + ${A.lowFiller}·[max(0, ${A.lowFillerF0} − filler)²] + ${A.payne}·Pay
+
+Shore A = ${H.y0} + ${H.filler}·Δfiller ${H.plasticiser}·Δplasticiser + ${H.sulfur}·ΔS + ${H.payne}·Pay
+Heat ΔT = ${Ht.y0} + ${Ht.perTanD60}·Δtan δ60 + ${Ht.filler}·Δfiller
+Cost    = Σ(phr × ₹/kg) ÷ Σphr, indexed to ICE = 100 (≈ ₹${MODEL.cost.baseRsPerKg}/kg)
+
+RR index   = tan δ60 / ${BASE.t60.toFixed(3)} × 100
+Range gain = ${MODEL.range.treadShareOfRR} × (100 − RR index) × ${MODEL.range.rrShareOfEnergy}   (estimate)
+Score      = ${MODEL.score.wRR}·RR gain + ${MODEL.score.wWet}·wet gain + ${MODEL.score.wWear}·wear gain
+             − penalties (hardness outside 63 ± 3, cost above cap)`;
+}
+
+/* ---------------- wiring ---------------- */
+function init(){
+  buildSliders(); buildCards(); renderEqs(); resetTested();
+  $("btnIce").onclick = () => loadRecipe(ICE, "ICE baseline loaded");
+  $("btnEv").onclick = () => loadRecipe(EVREF, "EV reference loaded");
+  $("btnJson").onclick = () => { const p = predict(state); copyText(JSON.stringify({recipe_phr: Object.assign({nr_pct: p.nr}, state), predicted: {tanD60: +p.t60.toFixed(4), tanD0: +p.t0.toFixed(4), abrasion_mm3: +p.abr.toFixed(1), hardness_shoreA: +p.hard.toFixed(1), heat_buildup_C: +p.heat.toFixed(1), cost_index: +p.cost.toFixed(1), rr_index: +p.rr.toFixed(1), range_gain_pct_estimate: +p.range.toFixed(2)}, note: "Literature-calibrated surrogate; synthetic, not Eurogrip lab data"}, null, 2), "Recipe JSON"); };
+  $("capIn").addEventListener("input", e => { costCap = +e.target.value; $("capOut").textContent = costCap; if (samples){ computeFront(); drawScatter(); } render(); });
+  $("kapIn").addEventListener("input", e => { kappa = +e.target.value; $("kapOut").textContent = kappa.toFixed(2); suggest(); });
+  $("btnExplore").onclick = explore;
+  const parCsv = () => samples ? [CSV_HEAD].concat(front.map(s => csvRow(s.x, s.p))).join("\n") : null;
+  const sugCsv = () => [CSV_HEAD].concat(suggestions.map(s => csvRow(s.x, s.p))).join("\n");
+  $("btnParCsv").onclick = () => { const c = parCsv(); c ? download("pareto_recipes.csv", c) : toast("Run the explorer first"); };
+  $("btnParCopy").onclick = () => { const c = parCsv(); c ? copyText(c, "Pareto CSV") : toast("Run the explorer first"); };
+  $("btnSugCsv").onclick = () => download("next_lab_trials.csv", sugCsv());
+  $("btnSugCopy").onclick = () => copyText(sugCsv(), "Suggestions CSV");
+  $("btnSuggest").onclick = () => { suggest(); toast("5 trials proposed"); };
+  $("btnReset").onclick = () => { resetTested(); suggest(); toast("Tested list reset"); };
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.par !== undefined) loadRecipe(front[+b.dataset.par].x, "Pareto recipe loaded");
+    else if (b.dataset.sload !== undefined) loadRecipe(suggestions[+b.dataset.sload].x, "Suggested trial loaded");
+    else if (b.dataset.tload !== undefined) loadRecipe(tested[+b.dataset.tload].x, "Tested recipe loaded");
+    else if (b.dataset.stest !== undefined){ const s = suggestions[+b.dataset.stest]; tested.push({x: s.x, label: "Trial " + (tested.length - 1)}); suggest(); toast("Marked as tested. Suggestions updated."); }
+  });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (samples) drawScatter(); }, 120); });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (samples) drawScatter(); render(); });
+  render(); renderParTable(); suggest();
+  explore();
+}
+init();
+</script>
+</body>
+</html>
